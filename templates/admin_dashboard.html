@@ -1,0 +1,99 @@
+{% extends "admin_base.html" %}
+
+{% block content %}
+<h1 class="page-title">📊 Admin Overview</h1>
+
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card" style="border-left: 5px solid #3b82f6; margin-bottom: 0;">
+    <h3 style="color:#64748b; font-size:1rem; margin-bottom:0.5rem;">Total Questions</h3>
+    <p style="font-size: 3rem; font-weight: 800; color: #1e293b;">{{ total_questions }}</p>
+  </div>
+  <div class="card" style="border-left: 5px solid #10b981; margin-bottom: 0;">
+    <h3 style="color:#64748b; font-size:1rem; margin-bottom:0.5rem;">Registered Students</h3>
+    <p style="font-size: 3rem; font-weight: 800; color: #1e293b;">{{ student_count }}</p>
+  </div>
+  <div class="card" style="border-left: 5px solid #8b5cf6; margin-bottom: 0;">
+    <h3 style="color:#64748b; font-size:1rem; margin-bottom:0.5rem;">Total Attempts</h3>
+    <p style="font-size: 3rem; font-weight: 800; color: #1e293b;">{{ total_attempts }}</p>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 0;">📦 Active Sets</h3>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label style="font-size: 0.9rem; color: #64748b; font-weight: 600;">Show:</label>
+      <select id="pageSizeSelect" onchange="changePageSize()" style="width: auto; padding: 0.4rem 1rem; margin-bottom: 0; border-radius: 0.5rem;">
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Set Name</th><th>Description</th><th>Questions in Bank</th><th>Questions per Exam</th><th>Time Limit</th></tr>
+    {% for s in sets %}
+    <tr class="data-row">
+      <td><span class="badge">{{ s.name }}</span></td>
+      <td>{{ s.description or '—' }}</td>
+      <td><strong>{{ s.qcount }}</strong></td>
+      <td>{{ s.question_count }}</td>
+      <td>{{ s.duration_minutes }} mins</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <!-- PAGINATION CONTROLS -->
+  <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 0.5rem;">
+    <button type="button" class="btn btn-outline" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+    <div style="font-weight: 600; color: #64748b;">Page <span id="pageNum">1</span> of <span id="totalPages">1</span></div>
+    <button type="button" class="btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+  </div>
+</div>
+
+<script>
+  let rowsPerPage = 10;
+  const rows = document.querySelectorAll('.data-row');
+  let totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+  let currentPage = 1;
+
+  function showPage(page) {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+
+    rows.forEach(row => row.style.display = 'none');
+    
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    
+    for (let i = start; i < end && i < rows.length; i++) {
+      if (rows[i]) rows[i].style.display = '';
+    }
+    
+    document.getElementById('pageNum').textContent = page;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('prevBtn').disabled = (page === 1);
+    document.getElementById('nextBtn').disabled = (page === totalPages || totalPages === 0);
+    
+    document.getElementById('prevBtn').style.opacity = page === 1 ? '0.5' : '1';
+    document.getElementById('nextBtn').style.opacity = (page === totalPages || totalPages === 0) ? '0.5' : '1';
+  }
+
+  function changePage(delta) { showPage(currentPage + delta); }
+  
+  function changePageSize() {
+    rowsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+    totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    showPage(1);
+  }
+
+  // Hide pagination completely if there are no sets
+  if (rows.length === 0) {
+    document.getElementById('pagination-controls').style.display = 'none';
+  } else {
+    showPage(1);
+  }
+</script>
+{% endblock %}

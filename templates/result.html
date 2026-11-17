@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exam Portal · Result</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body { background: #eef2f7; padding: 2rem 1rem; }
+  .container { max-width: 850px; margin: auto; }
+  h1 { color: #0b2b4f; margin-bottom: 1.5rem; }
+  .card { background: white; border-radius: 1rem; padding: 1.8rem; box-shadow: 0 6px 18px rgba(0,0,0,0.06); margin-bottom: 1.2rem; }
+  .result-card { text-align: center; }
+  .score { font-size: 3.5rem; font-weight: bold; color: #1a6dff; }
+  .msg { color: #3b5b7a; margin: 0.5rem 0 1.5rem; font-size: 1.1rem; }
+  .badge { background: #e8f0fe; color: #1a6dff; padding: 0.2rem 0.7rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600; }
+  
+  /* Button layout */
+  .btn-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem; }
+  .btn { background: #1a6dff; color: white; border: none; padding: 0.9rem 2rem; border-radius: 2rem; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: 0.2s; }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .btn-outline { background: white; color: #1a6dff; border: 2px solid #1a6dff; }
+  .btn-outline:hover { background: #f0f6ff; }
+  
+  /* Review Item Styles */
+  .review-item { background: #f8fafc; border-radius: 0.8rem; padding: 1.5rem; margin-bottom: 1rem; border-left: 4px solid #cbd5e1; }
+  .review-item.correct { border-left-color: #10b981; }
+  .review-item.wrong { border-left-color: #ef4444; }
+  
+  .q-title { font-weight: 600; color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; }
+  
+  .option-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 0.5rem; margin-bottom: 0.4rem; font-size: 0.95rem; border: 1px solid transparent; }
+  
+  /* Option colors */
+  .opt-correct { background: #dcfce7; color: #166534; border-color: #bbf7d0; font-weight: 600; }
+  .opt-wrong { background: #fee2e2; color: #991b1b; border-color: #fecaca; font-weight: 600; }
+  .opt-normal { color: #475569; }
+  
+  .status-icon { margin-left: auto; font-size: 1.1rem; }
+  .time-up { background: #fde8e8; color: #d33b3b; padding: 0.7rem 1rem; border-radius: 0.8rem; margin-bottom: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📊 Exam Result</h1>
+
+  <div class="card result-card">
+    {% if time_up %}
+      <div class="time-up">⏰ Time is up — exam submitted automatically.</div>
+    {% endif %}
+
+    <p class="label">Student</p>
+    <h2>{{ student_name }}</h2>
+    <p class="label" style="margin-top:0.5rem;">Assigned set:
+      <span class="badge">Set {{ set_name }}</span>
+    </p>
+    <p class="score">{{ score }}/{{ total }}</p>
+    <p class="msg">{{ percentage }}% &nbsp;—&nbsp;
+      {% if percentage >= 80 %}Excellent! 🎉
+      {% elif percentage >= 60 %}Good job! 👍
+      {% elif percentage >= 40 %}Keep practicing 💪
+      {% else %}Needs improvement 📚{% endif %}
+    </p>
+    
+    <div class="btn-group">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline">← Dashboard</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="color:#1a3a5e; margin-bottom:1rem;">📋 Detailed review</h2>
+    
+    {% for item in review %}
+    <div class="review-item {{ 'correct' if item.is_correct else 'wrong' }}">
+      <div class="q-title">Q{{ loop.index }}. {{ item.question }}</div>
+      
+      <!-- SHOW ALL 4 OPTIONS -->
+      <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+        
+        <!-- Option A -->
+        <div class="option-row {{ 'opt-correct' if item.correct == item.option_a else 'opt-wrong' if item.chosen == item.option_a else 'opt-normal' }}">
+          <strong>A.</strong> {{ item.option_a }}
+          {% if item.correct == item.option_a %}<span class="status-icon">✓ Correct Answer</span>{% endif %}
+          {% if item.chosen == item.option_a and item.correct != item.option_a %}<span class="status-icon">✗ Your Answer</span>{% endif %}
+        </div>
+
+        <!-- Option B -->
+        <div class="option-row {{ 'opt-correct' if item.correct == item.option_b else 'opt-wrong' if item.chosen == item.option_b else 'opt-normal' }}">
+          <strong>B.</strong> {{ item.option_b }}
+          {% if item.correct == item.option_b %}<span class="status-icon">✓ Correct Answer</span>{% endif %}
+          {% if item.chosen == item.option_b and item.correct != item.option_b %}<span class="status-icon">✗ Your Answer</span>{% endif %}
+        </div>
+
+        <!-- Option C -->
+        <div class="option-row {{ 'opt-correct' if item.correct == item.option_c else 'opt-wrong' if item.chosen == item.option_c else 'opt-normal' }}">
+          <strong>C.</strong> {{ item.option_c }}
+          {% if item.correct == item.option_c %}<span class="status-icon">✓ Correct Answer</span>{% endif %}
+          {% if item.chosen == item.option_c and item.correct != item.option_c %}<span class="status-icon">✗ Your Answer</span>{% endif %}
+        </div>
+
+        <!-- Option D -->
+        <div class="option-row {{ 'opt-correct' if item.correct == item.option_d else 'opt-wrong' if item.chosen == item.option_d else 'opt-normal' }}">
+          <strong>D.</strong> {{ item.option_d }}
+          {% if item.correct == item.option_d %}<span class="status-icon">✓ Correct Answer</span>{% endif %}
+          {% if item.chosen == item.option_d and item.correct != item.option_d %}<span class="status-icon">✗ Your Answer</span>{% endif %}
+        </div>
+
+      </div>
+      
+      <!-- SHOW IF THEY DIDN'T ANSWER -->
+      {% if item.chosen == "Not answered" %}
+      <div style="margin-top: 0.8rem; color: #ef4444; font-size: 0.9rem; font-weight: 600;">
+        ⚠️ You did not answer this question.
+      </div>
+      {% endif %}
+      
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</body>
+</html>

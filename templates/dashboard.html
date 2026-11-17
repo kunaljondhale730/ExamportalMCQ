@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exam Portal · Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body { background: #eef2f7; padding: 3rem 2rem; }
+  .container { max-width: 1400px; margin: auto; }
+  h1 { color: #0b2b4f; margin-bottom: 0.3rem; font-size: 2.5rem; }
+  .sub { color: #3b5b7a; margin-bottom: 2.5rem; font-size: 1.1rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: white; border-radius: 1.5rem; padding: 2.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 1.4rem; color: #1a3a5e; margin-bottom: 1.2rem; }
+  .stat-big { font-size: 4rem; font-weight: 800; color: #1a6dff; line-height: 1; margin-bottom: 0.5rem; }
+  .stat-label { color: #617e9e; margin-bottom: 1rem; font-size: 1.1rem; }
+  .mini-stats { display: flex; gap: 3rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .mini-stats div { color: #1a3a5e; font-size: 1.1rem; }
+  .mini-stats b { color: #1a6dff; font-size: 1.8rem; display: block; margin-top: 0.2rem; }
+  .btn { display: inline-block; background: #1a6dff; color: white; text-decoration: none; padding: 1.1rem 2.5rem; border-radius: 2rem; font-weight: 600; margin-top: 1.5rem; transition: 0.2s; border: none; cursor: pointer; font-size: 1.1rem; width: 100%; box-sizing: border-box; text-align: center; }
+  .btn:hover { background: #0a4ecf; }
+  .btn-danger { background: #d33b3b; width: auto; padding: 0.6rem 1.5rem; margin-top: 0; font-size: 1rem; }
+  .btn-danger:hover { background: #a92e2e; }
+  .btn-outline { background: white; color: #1a6dff; border: 1.5px solid #1a6dff; padding: 0.6rem 1.5rem; font-size: 1rem; width: auto; margin-top: 0; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .btn-outline:hover { background: #f0f7ff; }
+  .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { text-align: left; padding: 1rem 0.5rem; border-bottom: 1px solid #eef2f7; font-size: 1.1rem; }
+  th { color: #617e9e; font-weight: 600; font-size: 0.95rem; }
+  .badge { background: #e8f0fe; color: #1a6dff; padding: 0.4rem 1rem; border-radius: 1rem; font-size: 1rem; display: inline-block; margin: 0.2rem; font-weight: 500; }
+  .success { background: #e6f7ee; color: #1a7f3e; padding: 1.2rem 1.5rem; border-radius: 1rem; margin-bottom: 2rem; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+  select { padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; font-size: 1rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  
+  <div class="success">
+    <!-- UPDATED: Now shows full_name prominently and the ID in smaller text -->
+    <span>👋 Welcome, <strong>{{ full_name }}</strong> <span style="font-size: 0.9rem; font-weight: 500; opacity: 0.8;">(ID: {{ student_name }})</span>!</span>
+    
+    <a href="{{ url_for('logout') }}" class="btn btn-danger" style="text-decoration:none;">Logout</a>
+  </div>
+
+  <h1>📚 Exam Portal <span class="badge" style="font-size:1.2rem; vertical-align: middle;">MCW</span></h1>
+  <p class="sub">Dashboard · Multiple sets · Random questions per student</p>
+
+  <div class="grid">
+    <!-- OVERVIEW CARD -->
+    <div class="card">
+      <h2>📊 Overview</h2>
+      <p class="stat-big">{{ total_results }}</p>
+      <p class="stat-label">Exams taken by you</p>
+      
+      <div class="mini-stats">
+        <div>Your Avg Score <b>{{ avg_score }}%</b></div>
+      </div>
+    </div>
+
+    <!-- START EXAM CARD -->
+    <div class="card">
+      <h2>🚀 Start new exam</h2>
+      <p style="color:#617e9e; margin-bottom:1.5rem; font-size:1.1rem;">
+        A random set and random questions will be assigned to you based on the admin's settings.
+      </p>
+      <form method="POST" action="{{ url_for('start') }}">
+        <button type="submit" class="btn" style="margin-top:0; padding: 1.5rem; font-size: 1.3rem;">Start Exam →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECENT ATTEMPTS -->
+  <div class="card" style="margin-top:2rem;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="margin-bottom: 0;">📝 Your Recent attempts</h2>
+      {% if attempts %}
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label style="color: #617e9e; font-weight: 600;">Show:</label>
+        <select id="pageSizeSelect" onchange="changePageSize()">
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if attempts %}
+    <table>
+      <tr><th>Set</th><th>Score</th><th>%</th><th>Date</th></tr>
+      {% for a in attempts %}
+      <tr class="data-row">
+        <td><span class="badge">Set {{ a.set_name }}</span></td>
+        <td>{{ a.score }}/{{ a.total }}</td>
+        <td>{{ a.percentage }}%</td>
+        <td>{{ a.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 1rem;">
+      <button type="button" class="btn-outline" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+      <div style="font-weight: 600; color: #617e9e;">Page <span id="pageNum">1</span> of <span id="totalPages">1</span></div>
+      <button type="button" class="btn-outline" id="nextBtn" onclick="changePage(1)">Next →</button>
+    </div>
+
+    {% else %}
+    <p style="color:#617e9e; font-size:1.1rem;">No attempts yet. Start your first exam above!</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  let rowsPerPage = 5;
+  const rows = document.querySelectorAll('.data-row');
+  let totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+  let currentPage = 1;
+
+  function showPage(page) {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+
+    rows.forEach(row => row.style.display = 'none');
+    
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    
+    for (let i = start; i < end && i < rows.length; i++) {
+      if (rows[i]) rows[i].style.display = '';
+    }
+    
+    document.getElementById('pageNum').textContent = page;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('prevBtn').disabled = (page === 1);
+    document.getElementById('nextBtn').disabled = (page === totalPages || totalPages === 0);
+    
+    document.getElementById('prevBtn').style.opacity = page === 1 ? '0.5' : '1';
+    document.getElementById('nextBtn').style.opacity = (page === totalPages || totalPages === 0) ? '0.5' : '1';
+  }
+
+  function changePage(delta) { showPage(currentPage + delta); }
+  
+  function changePageSize() {
+    rowsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+    totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    showPage(1);
+  }
+
+  if (rows.length > 0) {
+    showPage(1);
+  } else {
+    const pagination = document.getElementById('pagination-controls');
+    if (pagination) pagination.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>

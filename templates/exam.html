@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exam Portal · MCW</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body { background: #eef2f7; padding: 2rem 1rem; }
+  .container { max-width: 850px; margin: auto; }
+  h1 { color: #0b2b4f; margin-bottom: 0.5rem; }
+  .meta { color: #617e9e; margin-bottom: 1.5rem; font-size: 0.95rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .badge { background: #e8f0fe; color: #1a6dff; padding: 0.2rem 0.7rem; border-radius: 1rem; font-size: 0.85rem; }
+  .badge-warn { background: #fef3c7; color: #d97706; font-weight: 600; }
+  .timer { background: #1a6dff; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; position: sticky; top: 1rem; z-index: 10; display: inline-block; }
+  .timer.warn { background: #e67e22; }
+  .timer.danger { background: #d33b3b; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+  
+  /* NEW INSTRUCTIONS STYLES */
+  .instructions-card { background: #fffbeb; border-left: 5px solid #f59e0b; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .instructions-card h3 { color: #b45309; margin-bottom: 0.5rem; font-size: 1.1rem; }
+  .instructions-card ul { margin-left: 1.5rem; color: #92400e; font-size: 0.95rem; line-height: 1.6; }
+  .instructions-card li { margin-bottom: 0.3rem; }
+  
+  .card { background: white; border-radius: 1rem; padding: 1.8rem; box-shadow: 0 6px 18px rgba(0,0,0,0.06); margin-bottom: 1.2rem; }
+  .question { font-weight: 600; color: #1a3a5e; margin-bottom: 1rem; font-size: 1.1rem; }
+  .options { display: flex; flex-direction: column; gap: 0.6rem; }
+  .options label { display: flex; align-items: center; gap: 0.7rem; padding: 0.8rem 1rem; border-radius: 0.8rem; border: 1px solid #dde7f0; cursor: pointer; transition: 0.15s; font-size: 1rem; }
+  .options label:hover { background: #f4f9ff; border-color: #1a6dff; }
+  input[type="radio"] { accent-color: #1a6dff; width: 1.2rem; height: 1.2rem; }
+  .btn { background: #1a6dff; color: white; border: none; padding: 1rem 2.5rem; border-radius: 2rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 1rem; }
+  .btn:hover { background: #0a4ecf; }
+  .btn-outline { background: white; color: #1a6dff; border: 1.5px solid #1a6dff; padding: 0.6rem 1.5rem; font-size: 1rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .btn-outline:hover { background: #f0f7ff; }
+  .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  /* POPUP STYLES */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+  .modal-box { background: white; padding: 2rem; border-radius: 1rem; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .modal-box h3 { color: #d33b3b; margin-bottom: 1rem; font-size: 1.3rem; }
+  .modal-box p { color: #475569; margin-bottom: 1.5rem; line-height: 1.5; }
+  .modal-btns { display: flex; gap: 1rem; justify-content: center; }
+  .modal-btns button { padding: 0.8rem 1.5rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; border: none; font-size: 1rem; }
+  .btn-cancel { background: #e2e8f0; color: #475569; }
+  .btn-confirm { background: #1a6dff; color: white; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📝 MCQ Exam</h1>
+  <div class="meta">
+    <span>Student: <strong>{{ student_name }}</strong></span>
+    <span class="badge">Set {{ set_name }}</span>
+    <span>{{ questions|length }} questions</span>
+    <span class="badge badge-warn" id="unanswered-badge" style="display:none;">0 unanswered</span>
+    <span class="timer" id="timer">--:--</span>
+  </div>
+
+  <!-- NEW: EXAM INSTRUCTIONS -->
+  <div class="instructions-card">
+    <h3>⚠️ Important Exam Instructions</h3>
+    <ul>
+      <li><strong>Do NOT switch tabs, minimize the window, or open other apps.</strong> Doing so will instantly submit your exam.</li>
+      <li>Do not refresh the page. Your progress will be lost.</li>
+      <li>You can navigate between questions using the "Next" and "Previous" buttons.</li>
+      <li>Make sure to answer all questions before clicking "Submit Exam".</li>
+    </ul>
+  </div>
+
+  <form method="POST" action="{{ url_for('submit') }}" id="examForm">
+    <div class="card">
+      
+      <!-- PAGE SIZE CONTROL -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #eef2f7; padding-bottom: 1rem;">
+        <div style="font-weight: 600; color: #1a3a5e;">Questions</div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <label style="color: #617e9e; font-size: 0.9rem;">Show:</label>
+          <select id="pageSizeSelect" onchange="changePageSize()" style="padding: 0.4rem 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; outline: none;">
+            <option value="1">1</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="999">All</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- QUESTIONS LIST -->
+      {% for q in questions %}
+      <div class="question-block" style="border-bottom: 1px solid #eef2f7; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+        <div class="question">{{ loop.index }}. {{ q.question }}</div>
+        <div class="options">
+          <label><input type="radio" name="q_{{ q.id }}" value="A" onchange="updateUnanswered()"> {{ q.option_a }}</label>
+          <label><input type="radio" name="q_{{ q.id }}" value="B" onchange="updateUnanswered()"> {{ q.option_b }}</label>
+          <label><input type="radio" name="q_{{ q.id }}" value="C" onchange="updateUnanswered()"> {{ q.option_c }}</label>
+          <label><input type="radio" name="q_{{ q.id }}" value="D" onchange="updateUnanswered()"> {{ q.option_d }}</label>
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- PAGINATION CONTROLS -->
+      <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 1rem; margin-bottom: 1rem;">
+        <button type="button" class="btn-outline" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+        <div style="font-weight: 600; color: #617e9e;">Page <span id="pageNum">1</span> of <span id="totalPages">1</span></div>
+        <button type="button" class="btn-outline" id="nextBtn" onclick="changePage(1)">Next →</button>
+      </div>
+
+      <button type="button" class="btn" onclick="confirmSubmit()">✓ Submit exam</button>
+    </div>
+  </form>
+</div>
+
+<!-- MODAL 1: UNANSWERED WARNING -->
+<div class="modal-overlay" id="warningModal">
+  <div class="modal-box">
+    <h3>⚠️ Unanswered Questions</h3>
+    <p id="warning-text">You have not answered all the questions. Are you sure you want to submit the exam?</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeWarning()">No, go back</button>
+      <button class="btn-confirm" onclick="proceedToFinalConfirm()">Yes, continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL 2: FINAL CONFIRMATION -->
+<div class="modal-overlay" id="finalModal">
+  <div class="modal-box">
+    <h3>✅ Confirm Submission</h3>
+    <p>Are you sure you want to submit your exam? You will not be able to change your answers after this.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeFinal()">No, go back</button>
+      <button class="btn-confirm" style="background:#10b981;" onclick="submitForm()">Yes, submit now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- ANTI-CHEAT: AUTO-SUBMIT ON TAB CHANGE ---
+  // This listens for when the user minimizes the window, switches tabs, or opens a new app.
+  document.addEventListener("visibilitychange", function() {
+    if (document.visibilityState === 'hidden') {
+      alert("🚨 SECURITY VIOLATION: You switched tabs or minimized the window. Your exam will now be submitted automatically.");
+      form.submit();
+    }
+  });
+
+  // --- TIMER LOGIC ---
+  let remaining = parseInt("{{ remaining_seconds }}");
+  const timerEl = document.getElementById('timer');
+  const form = document.getElementById('examForm');
+
+  function render() {
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    timerEl.textContent = `⏱ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    timerEl.classList.remove('warn', 'danger');
+    if (remaining <= 60) timerEl.classList.add('danger');
+    else if (remaining <= 300) timerEl.classList.add('warn');
+  }
+
+  render();
+  const interval = setInterval(() => {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(interval);
+      timerEl.textContent = '⏱ 00:00';
+      timerEl.classList.add('danger');
+      form.submit(); // Auto submit on time up
+      return;
+    }
+    render();
+  }, 1000);
+
+  // --- PAGINATION LOGIC ---
+  let rowsPerPage = 5;
+  const rows = document.querySelectorAll('.question-block');
+  let totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+  let currentPage = 1;
+
+  function showPage(page) {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+
+    rows.forEach(row => row.style.display = 'none');
+    
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    
+    for (let i = start; i < end && i < rows.length; i++) {
+      if (rows[i]) rows[i].style.display = 'block';
+    }
+    
+    document.getElementById('pageNum').textContent = page;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('prevBtn').disabled = (page === 1);
+    document.getElementById('nextBtn').disabled = (page === totalPages || totalPages === 0);
+    
+    document.getElementById('prevBtn').style.opacity = page === 1 ? '0.5' : '1';
+    document.getElementById('nextBtn').style.opacity = (page === totalPages || totalPages === 0) ? '0.5' : '1';
+  }
+
+  function changePage(delta) { 
+    showPage(currentPage + delta); 
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  
+  function changePageSize() {
+    rowsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+    totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    showPage(1);
+  }
+
+  // --- UNANSWERED & POPUP LOGIC ---
+  const totalQuestions = parseInt("{{ questions|length }}");
+  const unansweredBadge = document.getElementById('unanswered-badge');
+  const warningModal = document.getElementById('warningModal');
+  const finalModal = document.getElementById('finalModal');
+  const warningText = document.getElementById('warning-text');
+
+  function updateUnanswered() {
+    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked').length;
+    const unanswered = totalQuestions - checkedRadios;
+
+    if (unanswered > 0) {
+      unansweredBadge.style.display = 'inline-block';
+      unansweredBadge.textContent = `${unanswered} unanswered`;
+    } else {
+      unansweredBadge.style.display = 'none';
+    }
+  }
+
+  function confirmSubmit() {
+    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked').length;
+    const unanswered = totalQuestions - checkedRadios;
+
+    if (unanswered > 0) {
+      warningText.textContent = `You have ${unanswered} unanswered question(s). Are you sure you want to continue?`;
+      warningModal.style.display = 'flex';
+    } else {
+      finalModal.style.display = 'flex';
+    }
+  }
+
+  function closeWarning() { warningModal.style.display = 'none'; }
+  function proceedToFinalConfirm() {
+    warningModal.style.display = 'none';
+    finalModal.style.display = 'flex';
+  }
+  function closeFinal() { finalModal.style.display = 'none'; }
+  function submitForm() { form.submit(); }
+
+  // Initialize on page load
+  if (rows.length > 0) {
+    showPage(1);
+  } else {
+    document.getElementById('pagination-controls').style.display = 'none';
+  }
+  updateUnanswered();
+</script>
+</body>
+</html>

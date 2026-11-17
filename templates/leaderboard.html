@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Leaderboard · Exam Portal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body { background: #eef2f7; padding: 3rem 2rem; }
+  .container { max-width: 900px; margin: auto; }
+  h1 { color: #0b2b4f; margin-bottom: 0.5rem; font-size: 2.5rem; text-align: center; }
+  .sub { color: #3b5b7a; margin-bottom: 2.5rem; font-size: 1.1rem; text-align: center; }
+  .card { background: white; border-radius: 1.5rem; padding: 2.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 1.2rem 1rem; border-bottom: 1px solid #eef2f7; font-size: 1.2rem; }
+  th { color: #617e9e; font-weight: 600; font-size: 1rem; text-transform: uppercase; }
+  .rank { font-weight: 800; font-size: 1.5rem; color: #cbd5e1; }
+  .rank.gold { color: #fbbf24; }
+  .rank.silver { color: #94a3b8; }
+  .rank.bronze { color: #b45309; }
+  .me { background: #eff6ff; }
+  .btn { display: inline-block; background: #1a6dff; color: white; text-decoration: none; padding: 1rem 2.5rem; border-radius: 2rem; font-weight: 600; margin-top: 2rem; transition: 0.2s; font-size: 1.1rem; text-align: center; width: 100%; box-sizing: border-box; }
+  .btn:hover { background: #0a4ecf; }
+  .badge { background: #e8f0fe; color: #1a6dff; padding: 0.4rem 1rem; border-radius: 1rem; font-size: 1rem; font-weight: 600; }
+  
+  /* PAGINATION STYLES */
+  .btn-outline { background: white; color: #1a6dff; border: 1.5px solid #1a6dff; padding: 0.6rem 1.5rem; font-size: 1rem; border-radius: 2rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+  .btn-outline:hover { background: #f0f7ff; }
+  .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+  select { padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; font-size: 1rem; outline: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🏆 Leaderboard</h1>
+  <p class="sub">Top scores across all exams</p>
+
+  <div class="card">
+    
+    {% if scores %}
+    <!-- HEADER WITH PAGE SIZE -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h2 style="font-size: 1.4rem; color: #1a3a5e;">Top Students</h2>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <label style="color: #617e9e; font-weight: 600;">Show:</label>
+        <select id="pageSizeSelect" onchange="changePageSize()">
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Rank</th><th>Student</th><th>Best Score</th><th>Attempts</th></tr>
+      {% for s in scores %}
+      <!-- ADDED CLASS 'data-row' FOR PAGINATION -->
+      <tr class="data-row {{ 'me' if s.student_name == student_name else '' }}">
+        <td class="rank {{ 'gold' if loop.index == 1 else 'silver' if loop.index == 2 else 'bronze' if loop.index == 3 else '' }}">
+          #{{ loop.index }}
+        </td>
+        <td><strong>{{ s.student_name }}</strong> {% if s.student_name == student_name %}(You){% endif %}</td>
+        <td><span class="badge">{{ s.max_pct }}%</span></td>
+        <td style="color:#64748b;">{{ s.attempts_count }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <!-- PAGINATION CONTROLS -->
+    <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 1rem;">
+      <button type="button" class="btn-outline" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+      <div style="font-weight: 600; color: #617e9e;">Page <span id="pageNum">1</span> of <span id="totalPages">1</span></div>
+      <button type="button" class="btn-outline" id="nextBtn" onclick="changePage(1)">Next →</button>
+    </div>
+
+    {% else %}
+    <p style="text-align: center; color: #64748b; font-size: 1.2rem; padding: 2rem 0;">No exams taken yet. Be the first on the leaderboard!</p>
+    {% endif %}
+  </div>
+
+  <a href="{{ url_for('dashboard') }}" class="btn">← Back to Dashboard</a>
+</div>
+
+<!-- PAGINATION SCRIPT -->
+<script>
+  let rowsPerPage = 10;
+  const rows = document.querySelectorAll('.data-row');
+  let totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+  let currentPage = 1;
+
+  function showPage(page) {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+
+    rows.forEach(row => row.style.display = 'none');
+    
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    
+    for (let i = start; i < end && i < rows.length; i++) {
+      if (rows[i]) rows[i].style.display = '';
+    }
+    
+    document.getElementById('pageNum').textContent = page;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('prevBtn').disabled = (page === 1);
+    document.getElementById('nextBtn').disabled = (page === totalPages || totalPages === 0);
+    
+    document.getElementById('prevBtn').style.opacity = page === 1 ? '0.5' : '1';
+    document.getElementById('nextBtn').style.opacity = (page === totalPages || totalPages === 0) ? '0.5' : '1';
+  }
+
+  function changePage(delta) { showPage(currentPage + delta); }
+  
+  function changePageSize() {
+    rowsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+    totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    showPage(1);
+  }
+
+  if (rows.length > 0) {
+    showPage(1);
+  } else {
+    const pagination = document.getElementById('pagination-controls');
+    if (pagination) pagination.style.display = 'none';
+  }
+</script>
+
+</body>
+</html>

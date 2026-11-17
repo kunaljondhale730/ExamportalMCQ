@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel · Exam Portal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+  body { display: flex; min-height: 100vh; background: #f1f5f9; }
+  
+  /* SIDEBAR */
+  .sidebar { width: 260px; background: #0f172a; color: white; display: flex; flex-direction: column; position: fixed; height: 100vh; }
+  .sidebar h2 { padding: 2rem 1.5rem; font-size: 1.2rem; border-bottom: 1px solid #1e293b; color: #38bdf8; }
+  .nav-links { flex: 1; padding: 1.5rem 0; }
+  .nav-links a { display: flex; align-items: center; gap: 0.8rem; padding: 1rem 1.5rem; color: #94a3b8; text-decoration: none; font-weight: 500; transition: 0.2s; border-left: 4px solid transparent; }
+  .nav-links a:hover { background: #1e293b; color: white; }
+  .nav-links a.active { background: #1e293b; color: #38bdf8; border-left-color: #38bdf8; }
+  .logout-btn { padding: 1.5rem; border-top: 1px solid #1e293b; }
+  .logout-btn a { display: block; text-align: center; background: #ef4444; color: white; padding: 0.8rem; border-radius: 0.5rem; text-decoration: none; font-weight: 600; }
+  .logout-btn a:hover { background: #dc2626; }
+  
+  /* MAIN CONTENT AREA */
+  .main-content { margin-left: 260px; padding: 3rem; flex: 1; }
+  .page-title { font-size: 2rem; color: #1e293b; margin-bottom: 2rem; border-bottom: 2px solid #cbd5e1; padding-bottom: 1rem; }
+  
+  /* SHARED UI ELEMENTS */
+  .card { background: white; border-radius: 1rem; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 1.5rem; }
+  .card h3 { color: #1e293b; margin-bottom: 1.5rem; font-size: 1.3rem; }
+  .btn { background: #3b82f6; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 0.5rem; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:hover { background: #2563eb; }
+  .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
+  .btn-outline { background: white; color: #3b82f6; border: 1.5px solid #3b82f6; }
+  .btn-sm { padding: 0.4rem 1rem; font-size: 0.85rem; border-radius: 0.4rem; }
+  input[type="text"], input[type="number"], select { width: 100%; padding: 0.8rem 1rem; margin-bottom: 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; font-size: 1rem; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 1rem 0.5rem; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; }
+  th { color: #64748b; font-weight: 600; text-transform: uppercase; font-size: 0.8rem; }
+  .badge { background: #e0f2fe; color: #0284c7; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.85rem; font-weight: 600; }
+  .form-row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+  .form-group { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
+  .form-group label { font-size: 0.85rem; color: #64748b; margin-bottom: 0.3rem; font-weight: 600; }
+  .form-group input, .form-group select { margin-bottom: 0; }
+  .filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .filter-chip { padding: 0.5rem 1rem; border-radius: 2rem; background: #e2e8f0; color: #475569; font-size: 0.9rem; text-decoration: none; font-weight: 500; }
+  .filter-chip.active { background: #3b82f6; color: white; }
+  details summary { cursor: pointer; color: #3b82f6; font-weight: 600; }
+  details ul { margin: 0.5rem 0 0 1rem; font-size: 0.9rem; color: #475569; }
+</style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>🛡️ Admin Panel</h2>
+    <div class="nav-links">
+      <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if page == 'dashboard' else '' }}">📊 Overview</a>
+      <a href="{{ url_for('admin_students') }}" class="{{ 'active' if page == 'students' else '' }}">👥 Manage Users</a>
+      <a href="{{ url_for('admin_sets') }}" class="{{ 'active' if page == 'sets' else '' }}">📦 Manage Sets & Questions</a>
+      <a href="{{ url_for('admin_combine_questions') }}" class="{{ 'active' if page == 'combine' else '' }}">🔀 Combine Questions</a>
+      <a href="{{ url_for('admin_results') }}" class="{{ 'active' if page == 'results' else '' }}">📋 Student Results</a>
+    </div>
+    <div class="logout-btn">
+      <!-- UPDATED: Changed 'admin_logout' to 'logout' -->
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    
+    <!-- SMART BACK BUTTON -->
+    <div style="margin-bottom: 1rem;">
+      <a href="{{ url_for('admin_sets') if page == 'questions' else url_for('admin_dashboard') }}" 
+         style="display:inline-block; padding: 0.5rem 1rem; background: white; color: #64748b; border: 1px solid #cbd5e1; border-radius: 0.5rem; text-decoration: none; font-size: 0.9rem; font-weight: 600; transition: 0.2s;" 
+         onmouseover="this.style.background='#f8fafc'" 
+         onmouseout="this.style.background='white'">
+        ← Back
+      </a>
+    </div>
+
+    {% block content %}{% endblock %}
+  </div>
+
+</body>
+</html>

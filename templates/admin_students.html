@@ -1,0 +1,179 @@
+{% extends "admin_base.html" %}
+
+{% block content %}
+<h1 class="page-title">👥 Manage Users</h1>
+
+<!-- CREATE USER FORM -->
+<div class="card" style="border-top: 4px solid #f59e0b; margin-bottom: 2rem;">
+  <h3>👤 Create New User</h3>
+  <form method="POST" action="{{ url_for('admin_add_student') }}">
+    <div class="form-row">
+      <div class="form-group" style="flex:1;">
+        <label>Employee ID (Username)</label>
+        <input type="text" name="username" placeholder="e.g. EMP1024" required>
+      </div>
+      <div class="form-group" style="flex:2;">
+        <label>Full Name</label>
+        <input type="text" name="name" placeholder="e.g. John Doe" required>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Role</label>
+        <select name="role" required>
+          <option value="user">User (Student)</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <label>Assign Set (Optional)</label>
+        <select name="assigned_set">
+          <option value="">-- Random Set --</option>
+          {% for s in sets %}
+            <option value="{{ s.name }}">Set {{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn" style="margin-bottom: 0; height: 42px; background: #f59e0b;">Generate Account</button>
+    </div>
+  </form>
+</div>
+
+<!-- LIST OF USERS -->
+<div class="card">
+  
+  <!-- HEADER WITH PAGE SIZE -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h3 style="margin-bottom: 0;">📋 All Registered Users</h3>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <label style="font-size: 0.9rem; color: #64748b; font-weight: 600;">Show:</label>
+      <select id="pageSizeSelect" onchange="changePageSize()" style="width: auto; padding: 0.4rem 1rem; margin-bottom: 0; border-radius: 0.5rem; border: 1px solid #cbd5e1;">
+        <option value="10" selected>10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Employee ID</th>
+      <th>Name</th>
+      <th>Password</th>
+      <th>Role</th>
+      <th>Assigned Set</th>
+      <th>Update Info</th>
+      <th>Delete</th>
+    </tr>
+    {% for s in students %}
+    <!-- ADDED CLASS 'data-row' FOR PAGINATION -->
+    <tr class="data-row">
+      <td><strong>{{ s.username }}</strong></td>
+      <td>{{ s.name or 'N/A' }}</td>
+      
+      <!-- PASSWORD IS NOW EDITABLE IN THE UPDATE FORM -->
+      <td>
+        <form method="POST" action="{{ url_for('update_user_info') }}" style="margin:0;">
+          <input type="hidden" name="username" value="{{ s.username }}">
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" name="new_password" value="{{ s.password }}" required style="padding: 0.4rem; margin-bottom: 0; width: 120px; font-size: 0.85rem; border: 1px solid #cbd5e1; border-radius: 0.4rem;">
+            
+            <select name="role" style="padding: 0.4rem; margin-bottom: 0; width: auto; font-size: 0.85rem;">
+              <option value="user" {% if s.role == 'user' %}selected{% endif %}>User</option>
+              <option value="admin" {% if s.role == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+
+            <select name="assigned_set" style="padding: 0.4rem; margin-bottom: 0; width: auto; font-size: 0.85rem;">
+              <option value="" {% if not s.assigned_set %}selected{% endif %}>Random Set</option>
+              {% for set in sets %}
+                <option value="{{ set.name }}" {% if s.assigned_set == set.name %}selected{% endif %}>Set {{ set.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm" style="background:#3b82f6;">Save</button>
+          </div>
+        </form>
+      </td>
+
+      <td>
+        {% if s.role == 'admin' %}
+          <span class="badge" style="background:#fce7f3; color:#be185d;">Admin</span>
+        {% else %}
+          <span class="badge" style="background:#e0e7ff; color:#4338ca;">User</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if s.assigned_set %}
+          <span class="badge" style="background:#dcfce7; color:#166534;">Set {{ s.assigned_set }}</span>
+        {% else %}
+          <span class="badge" style="background:#f1f5f9; color:#64748b;">Random</span>
+        {% endif %}
+      </td>
+
+      <td style="color:#64748b; font-size: 0.85rem;">
+        Use the form on the left to update
+      </td>
+
+      <td>
+        <form method="POST" action="{{ url_for('delete_student', username=s.username) }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+          <button type="submit" class="btn btn-danger btn-sm" {% if s.username == 'admin' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>Delete</button>
+        </form>
+      </td>
+      
+    </tr>
+    {% endfor %}
+  </table>
+
+  <!-- PAGINATION CONTROLS -->
+  <div id="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 0.5rem;">
+    <button type="button" class="btn btn-outline" id="prevBtn" onclick="changePage(-1)">← Previous</button>
+    <div style="font-weight: 600; color: #64748b;">Page <span id="pageNum">1</span> of <span id="totalPages">1</span></div>
+    <button type="button" class="btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+  </div>
+  
+</div>
+
+<!-- PAGINATION SCRIPT -->
+<script>
+  let rowsPerPage = 10;
+  const rows = document.querySelectorAll('.data-row');
+  let totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+  let currentPage = 1;
+
+  function showPage(page) {
+    if (page < 1) page = 1;
+    if (page > totalPages) page = totalPages;
+    currentPage = page;
+
+    rows.forEach(row => row.style.display = 'none');
+    
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    
+    for (let i = start; i < end && i < rows.length; i++) {
+      if (rows[i]) rows[i].style.display = '';
+    }
+    
+    document.getElementById('pageNum').textContent = page;
+    document.getElementById('totalPages').textContent = totalPages;
+    document.getElementById('prevBtn').disabled = (page === 1);
+    document.getElementById('nextBtn').disabled = (page === totalPages || totalPages === 0);
+    
+    document.getElementById('prevBtn').style.opacity = page === 1 ? '0.5' : '1';
+    document.getElementById('nextBtn').style.opacity = (page === totalPages || totalPages === 0) ? '0.5' : '1';
+  }
+
+  function changePage(delta) { showPage(currentPage + delta); }
+  
+  function changePageSize() {
+    rowsPerPage = parseInt(document.getElementById('pageSizeSelect').value);
+    totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    showPage(1);
+  }
+
+  if (rows.length === 0) {
+    document.getElementById('pagination-controls').style.display = 'none';
+  } else {
+    showPage(1);
+  }
+</script>
+{% endblock %}
