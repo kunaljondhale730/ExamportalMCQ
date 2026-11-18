@@ -6,7 +6,7 @@
 <!-- CREATE USER FORM -->
 <div class="card" style="border-top: 4px solid #f59e0b; margin-bottom: 2rem;">
   <h3>👤 Create New User</h3>
-  <form method="POST" action="{{ url_for('admin_add_student') }}">
+  <form method="POST" action="{{ url_for('admin_add_user') }}">
     <div class="form-row">
       <div class="form-group" style="flex:1;">
         <label>Employee ID (Username)</label>
@@ -19,7 +19,7 @@
       <div class="form-group" style="flex:1;">
         <label>Role</label>
         <select name="role" required>
-          <option value="user">User (Student)</option>
+          <option value="user">User</option>
           <option value="admin">Admin</option>
         </select>
       </div>
@@ -64,8 +64,8 @@
       <th>Update Info</th>
       <th>Delete</th>
     </tr>
-    {% for s in students %}
-    <!-- ADDED CLASS 'data-row' FOR PAGINATION -->
+    <!-- THIS IS THE FIX: Changed 'students' to 'users' -->
+    {% for s in users %}
     <tr class="data-row">
       <td><strong>{{ s.username }}</strong></td>
       <td>{{ s.name or 'N/A' }}</td>
@@ -114,7 +114,7 @@
       </td>
 
       <td>
-        <form method="POST" action="{{ url_for('delete_student', username=s.username) }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+        <form method="POST" action="{{ url_for('delete_user', username=s.username) }}" style="margin:0;" onsubmit="return confirm('Are you sure you want to delete this user?');">
           <button type="submit" class="btn btn-danger btn-sm" {% if s.username == 'admin' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>Delete</button>
         </form>
       </td>

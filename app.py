@@ -69,6 +69,7 @@ def init_db():
         )
     """)
 
+    # Note: Database table name remains 'students' to prevent breaking existing data
     cur.execute("""
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +97,8 @@ def init_db():
     """)
 
     cur.execute("INSERT OR IGNORE INTO students (username, password, name, role) VALUES ('admin', 'admin123', 'System Admin', 'admin')")
-    cur.execute("INSERT OR IGNORE INTO students (username, password, name, role) VALUES ('student', 'password123', 'Test Student', 'user')")
+    # Changed default test name to 'Test User'
+    cur.execute("INSERT OR IGNORE INTO students (username, password, name, role) VALUES ('user', 'password123', 'Test User', 'user')")
     
     conn.commit()
     conn.close()
@@ -113,19 +115,19 @@ def get_all_sets():
     return rows
 
 
-def create_exam(student_username):
+def create_exam(user_username):
     conn = get_db()
-    student = conn.execute("SELECT assigned_set FROM students WHERE username = ?", (student_username,)).fetchone()
+    user = conn.execute("SELECT assigned_set FROM students WHERE username = ?", (user_username,)).fetchone()
     
-    if student and student["assigned_set"]:
-        # Student already has a set assigned (either by Admin or from a previous exam)
-        set_name = student["assigned_set"]
+    if user and user["assigned_set"]:
+        # User already has a set assigned (either by Admin or from a previous exam)
+        set_name = user["assigned_set"]
         set_info = conn.execute("SELECT question_count, duration_minutes FROM sets WHERE name = ?", (set_name,)).fetchone()
         if not set_info:
             conn.close()
             return None, [], 0
     else:
-        # Student has NO set assigned. Pick a random one and SAVE it to the database.
+        # User has NO set assigned. Pick a random one and SAVE it to the database.
         sets = get_all_sets()
         eligible = [s for s in sets if s["qcount"] > 0]
         if not eligible: 
@@ -136,8 +138,8 @@ def create_exam(student_username):
         set_name = chosen_set["name"]
         set_info = chosen_set
         
-        # CRITICAL FIX: Save this random set to the student's profile permanently
-        conn.execute("UPDATE students SET assigned_set = ? WHERE username = ?", (set_name, student_username))
+        # CRITICAL FIX: Save this random set to the user's profile permanently
+        conn.execute("UPDATE students SET assigned_set = ? WHERE username = ?", (set_name, user_username))
         conn.commit()
 
     per_exam = set_info["question_count"] or DEFAULT_QUESTIONS_PER_EXAM
@@ -159,7 +161,7 @@ def create_exam(student_username):
     return set_name, chosen, duration
 
 
-# ---------- AUTHENTICATION & STUDENT ROUTES ----------
+# ---------- AUTHENTICATION & USER ROUTES ----------
 @app.route("/")
 def dashboard():
     if "student_name" not in session or not session.get("student_name"):
@@ -228,7 +230,7 @@ def start():
         return redirect(url_for("login"))
         
     if session.get("role") == "admin" or session.get("is_admin"):
-        return "Admins cannot take exams. Please log in as a student.", 403
+        return "Admins cannot take exams. Please log in as a user.", 403
     
     set_name, chosen_ids, duration = create_exam(session["student_name"])
     if not set_name: return "No questions available or assigned set is empty.", 400
@@ -340,17 +342,17 @@ def admin_dashboard():
 
 
 @app.route("/admin/students")
-def admin_students():
+def admin_users(): # Updated function name
     if not session.get("is_admin"): return redirect(url_for("login"))
     conn = get_db()
-    students = conn.execute("SELECT * FROM students ORDER BY id DESC").fetchall()
+    users = conn.execute("SELECT * FROM students ORDER BY id DESC").fetchall()
     conn.close()
     
-    return render_template("admin_students.html", page="students", sets=get_all_sets(), students=students)
+    return render_template("admin_students.html", page="users", sets=get_all_sets(), users=users)
 
 
 @app.route("/admin/add_student", methods=["POST"])
-def admin_add_student():
+def admin_add_user(): # Updated function name
     if not session.get("is_admin"): return redirect(url_for("login"))
     
     emp_id = request.form.get("username", "").strip()
@@ -371,11 +373,11 @@ def admin_add_student():
             pass
         conn.close()
         
-    return redirect(url_for("admin_students"))
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/delete_student/<username>", methods=["POST"])
-def delete_student(username):
+def delete_user(username): # Updated function name
     if not session.get("is_admin"): return redirect(url_for("login"))
     
     conn = get_db()
@@ -383,7 +385,7 @@ def delete_student(username):
     conn.commit()
     conn.close()
     
-    return redirect(url_for("admin_students"))
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/update_user_info", methods=["POST"])
@@ -401,7 +403,7 @@ def update_user_info():
     conn.commit()
     conn.close()
     
-    return redirect(url_for("admin_students"))
+    return redirect(url_for("admin_users"))
 
 
 @app.route("/admin/sets")
@@ -502,10 +504,10 @@ def admin_results():
         qmap = {q["id"]: q for q in qs}
         
         try:
-            student_answers = ast.literal_eval(a["answers"]) if a["answers"] else {}
+            user_answers = ast.literal_eval(a["answers"]) if a["answers"] else {}
         except Exception as e:
             print(f"Error parsing answers: {e}")
-            student_answers = {}
+            user_answers = {}
 
         items = []
         for qid in ids:
@@ -518,7 +520,7 @@ def admin_results():
                     "option_c": qmap[qid]["option_c"],
                     "option_d": qmap[qid]["option_d"],
                     "correct": qmap[qid]["correct_option"],
-                    "selected_answer": student_answers.get(str(qid), "") 
+                    "selected_answer": user_answers.get(str(qid), "") 
                 })
                 
         detailed.append({

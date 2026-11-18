@@ -37,14 +37,15 @@
 <div class="container">
   
   <div class="success">
-    <!-- UPDATED: Now shows full_name prominently and the ID in smaller text -->
     <span>👋 Welcome, <strong>{{ full_name }}</strong> <span style="font-size: 0.9rem; font-weight: 500; opacity: 0.8;">(ID: {{ student_name }})</span>!</span>
     
     <a href="{{ url_for('logout') }}" class="btn btn-danger" style="text-decoration:none;">Logout</a>
   </div>
 
   <h1>📚 Exam Portal <span class="badge" style="font-size:1.2rem; vertical-align: middle;">MCW</span></h1>
-  <p class="sub">Dashboard · Multiple sets · Random questions per student</p>
+  
+  <!-- UPDATED: Changed 'per student' to 'per user' -->
+  <p class="sub">Dashboard · Multiple sets · Random questions per user</p>
 
   <div class="grid">
     <!-- OVERVIEW CARD -->

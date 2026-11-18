@@ -53,13 +53,17 @@
     <h2>🛡️ Admin Panel</h2>
     <div class="nav-links">
       <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if page == 'dashboard' else '' }}">📊 Overview</a>
-      <a href="{{ url_for('admin_students') }}" class="{{ 'active' if page == 'students' else '' }}">👥 Manage Users</a>
+      
+      <!-- UPDATED: Changed 'admin_students' to 'admin_users' and page to 'users' -->
+      <a href="{{ url_for('admin_users') }}" class="{{ 'active' if page == 'users' else '' }}">👥 Manage Users</a>
+      
       <a href="{{ url_for('admin_sets') }}" class="{{ 'active' if page == 'sets' else '' }}">📦 Manage Sets & Questions</a>
       <a href="{{ url_for('admin_combine_questions') }}" class="{{ 'active' if page == 'combine' else '' }}">🔀 Combine Questions</a>
-      <a href="{{ url_for('admin_results') }}" class="{{ 'active' if page == 'results' else '' }}">📋 Student Results</a>
+      
+      <!-- UPDATED: Changed text to 'User Results' -->
+      <a href="{{ url_for('admin_results') }}" class="{{ 'active' if page == 'results' else '' }}">📋 User Results</a>
     </div>
     <div class="logout-btn">
-      <!-- UPDATED: Changed 'admin_logout' to 'logout' -->
       <a href="{{ url_for('logout') }}">Logout</a>
     </div>
   </div>
