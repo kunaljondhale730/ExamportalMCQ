@@ -6,15 +6,21 @@ import time
 import string
 import ast
 import pandas as pd
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "exam-portal-secret-2025"
-DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exam.db")
 
-# ---------------------------------------------------------
-# CHANGE THIS TO CHANGE THE MASTER ADMIN PASSWORD
-ADMIN_PASSWORD = "admin123" 
-# ---------------------------------------------------------
+# Securely fetch secrets from environment variables (NO FALLBACKS)
+app.secret_key = os.environ.get("SECRET_KEY")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+
+if not app.secret_key or not ADMIN_PASSWORD:
+    raise ValueError("CRITICAL ERROR: SECRET_KEY and ADMIN_PASSWORD must be set in the .env file!")
+
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exam.db")
 
 DEFAULT_QUESTIONS_PER_EXAM = 25
 DEFAULT_DURATION_MIN = 30
@@ -96,8 +102,7 @@ def init_db():
         )
     """)
 
-    cur.execute("INSERT OR IGNORE INTO students (username, password, name, role) VALUES ('admin', 'admin123', 'System Admin', 'admin')")
-    # Changed default test name to 'Test User'
+    # ONLY create the default 'user' account. The hardcoded admin account is removed for security.
     cur.execute("INSERT OR IGNORE INTO students (username, password, name, role) VALUES ('user', 'password123', 'Test User', 'user')")
     
     conn.commit()
@@ -189,16 +194,19 @@ def dashboard():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # This is now the hidden URL for admin login
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         
+        # Check against the secure environment variable
         if username == 'admin' and password == ADMIN_PASSWORD:
             session["student_name"] = "admin"
             session["role"] = "admin"
             session["is_admin"] = True
             return redirect(url_for("admin_dashboard"))
 
+        # Check regular users
         conn = get_db()
         user = conn.execute("SELECT * FROM students WHERE username = ? AND password = ?", (username, password)).fetchone()
         conn.close()
@@ -342,7 +350,7 @@ def admin_dashboard():
 
 
 @app.route("/admin/students")
-def admin_users(): # Updated function name
+def admin_users(): 
     if not session.get("is_admin"): return redirect(url_for("login"))
     conn = get_db()
     users = conn.execute("SELECT * FROM students ORDER BY id DESC").fetchall()
@@ -352,7 +360,7 @@ def admin_users(): # Updated function name
 
 
 @app.route("/admin/add_student", methods=["POST"])
-def admin_add_user(): # Updated function name
+def admin_add_user(): 
     if not session.get("is_admin"): return redirect(url_for("login"))
     
     emp_id = request.form.get("username", "").strip()
@@ -377,7 +385,7 @@ def admin_add_user(): # Updated function name
 
 
 @app.route("/admin/delete_student/<username>", methods=["POST"])
-def delete_user(username): # Updated function name
+def delete_user(username): 
     if not session.get("is_admin"): return redirect(url_for("login"))
     
     conn = get_db()
